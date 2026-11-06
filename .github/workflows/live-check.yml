@@ -1,0 +1,24 @@
+name: Live demo check
+
+# After a push to main, Render redeploys the demo. This waits for it and runs the
+# end-to-end smoke test against the public URL (login, file a claim, AI analysis, approval, rate limits).
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 */12 * * *"   # twice a day; also keeps the free instance from sleeping forever
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for Render to roll out this commit
+        if: github.event_name == 'push'
+        run: sleep 360
+      - name: Smoke test https://claimflow-v9sw.onrender.com
+        env:
+          EXPECT_REPLICAS: "1"
+        run: deploy/smoke-test.sh https://claimflow-v9sw.onrender.com

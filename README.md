@@ -2,7 +2,7 @@
 
 AI-assisted insurance claims processing. A customer files a claim and uploads bills. An AI step reads the documents and scores fraud risk, and an adjuster reviews it. Big or risky claims need a manager's sign-off before payout.
 
-[![CI](https://github.com/DanKan0517-then/claimflow/actions/workflows/ci.yml/badge.svg)](https://github.com/DanKan0517-then/claimflow/actions/workflows/ci.yml)
+[![CI](https://github.com/DanKan0517-then/claimflow/actions/workflows/ci.yml/badge.svg)](https://github.com/DanKan0517-then/claimflow/actions/workflows/ci.yml) [![Live demo check](https://github.com/DanKan0517-then/claimflow/actions/workflows/live-check.yml/badge.svg)](https://github.com/DanKan0517-then/claimflow/actions/workflows/live-check.yml)
 
 ## 🔗 Live demo: **https://claimflow-v9sw.onrender.com**
 
