@@ -16,3 +16,6 @@ frontend/dist/
 .DS_Store
 # Load test output
 loadtest/results/
+
+# Production TLS certificates
+deploy/certbot/

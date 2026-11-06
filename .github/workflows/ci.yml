@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend (Spring Boot) - build & test
+    name: Backend - build & test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,17 +25,59 @@ jobs:
           cache: maven
       - name: Pin Docker API version for Testcontainers
         run: echo "api.version=1.44" > ~/.docker-java.properties
-      - name: Build, unit + integration tests (Testcontainers)
+      - name: Unit + integration tests (real Postgres & Redis via Testcontainers)
         env:
           DOCKER_API_VERSION: "1.44"
         run: mvn -B -ntp verify
-      - name: Test report
+      - name: Upload test and coverage reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-test-reports
+          name: backend-reports
           path: |
             backend/target/surefire-reports/
             backend/target/site/jacoco/
           if-no-files-found: ignore
 
+  frontend:
+    name: Frontend - lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  e2e:
+    name: System test - full stack in Docker (nginx + 2 APIs + Postgres + Redis)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the whole system
+        env:
+          API_RATE_LIMIT: "1000"
+        run: |
+          cp .env.example .env
+          docker compose up -d --build --wait --wait-timeout 300
+          docker compose ps
+      - name: Load test (k6, 30 virtual users through nginx)
+        run: docker run --rm -i --network host grafana/k6:0.54.0 run -e BASE=http://localhost - < loadtest/claims-load.js
+      - name: End-to-end smoke test
+        run: deploy/smoke-test.sh http://localhost
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

@@ -1,12 +1,14 @@
 {
-  "name": "frontend",
+  "name": "claimflow-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "typecheck": "tsc -b",
+    "lint": "oxlint src",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,0 +1,37 @@
+# ClaimFlow gateway (local / plain HTTP). The prod override swaps in an HTTPS version of this file.
+# Files in /etc/nginx/templates are run through envsubst at container start.
+
+# Two stateless API replicas. least_conn sends each request to the replica with fewer
+# in-flight requests; a replica that fails 3 times is skipped for 10s.
+upstream claimflow_api {
+    least_conn;
+    server api-1:8080 max_fails=3 fail_timeout=10s;
+    server api-2:8080 max_fails=3 fail_timeout=10s;
+    keepalive 32;
+}
+
+# Rate limits per client IP
+limit_req_zone $binary_remote_addr zone=auth_limit:10m   rate=10r/m;   # brute-force protection on login/register
+limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=30r/m;   # document uploads
+limit_req_zone $binary_remote_addr zone=api_limit:10m    rate=${API_RATE_LIMIT}r/s;   # everything else (API_RATE_LIMIT env, default 30)
+limit_req_status 429;
+limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+log_format claimflow_json escape=json
+    '{"time":"$time_iso8601","request_id":"$request_id","remote":"$remote_addr",'
+    '"method":"$request_method","uri":"$request_uri","status":$status,'
+    '"bytes":$body_bytes_sent,"request_time":$request_time,'
+    '"upstream":"$upstream_addr","upstream_time":"$upstream_response_time","ua":"$http_user_agent"}';
+
+server {
+    listen 80 default_server;
+    server_name ${SERVER_NAME};
+    access_log /var/log/nginx/access.log claimflow_json;
+
+    include /etc/nginx/snippets/claimflow-locations.conf;
+}

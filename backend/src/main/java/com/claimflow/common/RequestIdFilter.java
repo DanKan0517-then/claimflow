@@ -20,6 +20,12 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
     public static final String HEADER = "X-Request-ID";
 
+    private final String instanceId;
+
+    public RequestIdFilter(com.claimflow.config.AppProperties props) {
+        this.instanceId = props.instanceId();
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -29,6 +35,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
         }
         MDC.put("requestId", id);
         response.setHeader(HEADER, id);
+        response.setHeader("X-Served-By", instanceId); // shows nginx load balancing across replicas
         try {
             chain.doFilter(request, response);
         } finally {
