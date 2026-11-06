@@ -1,0 +1,106 @@
+# ClaimFlow gateway on Render. Render terminates TLS at its edge and forwards to this nginx on $PORT.
+# nginx serves the React app and proxies /api and /ws to the API service over HTTPS.
+
+limit_req_zone $binary_remote_addr zone=auth_limit:10m   rate=10r/m;
+limit_req_zone $binary_remote_addr zone=upload_limit:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=api_limit:10m    rate=${API_RATE_LIMIT}r/s;
+limit_req_status 429;
+limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+log_format claimflow_json escape=json
+    '{"time":"$time_iso8601","request_id":"$request_id","remote":"$remote_addr",'
+    '"method":"$request_method","uri":"$request_uri","status":$status,'
+    '"request_time":$request_time,"upstream_time":"$upstream_response_time"}';
+
+server {
+    listen ${PORT} default_server;
+    access_log /var/log/nginx/access.log claimflow_json;
+
+    # Render's load balancer is in front: trust its X-Forwarded-For so rate limits apply per real client.
+    set_real_ip_from 0.0.0.0/0;
+    real_ip_header X-Forwarded-For;
+    real_ip_recursive on;
+
+    resolver 1.1.1.1 8.8.8.8 valid=300s ipv6=off;
+    set $api_upstream https://${API_HOST};
+
+    root /usr/share/nginx/html;
+    client_max_body_size 12m;
+    server_tokens off;
+    limit_conn conn_limit 50;
+
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript image/svg+xml;
+
+    include /etc/nginx/snippets/security-headers.conf;
+
+    proxy_http_version 1.1;
+    proxy_ssl_server_name on;
+    proxy_set_header Host ${API_HOST};
+    proxy_set_header X-Request-ID $request_id;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_connect_timeout 10s;
+    proxy_read_timeout 90s;   # free tier API may be waking up
+
+    location = /nginx-health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
+    location /actuator/ {
+        return 404;
+    }
+
+    location /api/auth/ {
+        limit_req zone=auth_limit burst=10 nodelay;
+        proxy_set_header Connection "";
+        proxy_pass $api_upstream;
+    }
+
+    location ~ ^/api/claims/\d+/documents$ {
+        limit_req zone=upload_limit burst=10 nodelay;
+        proxy_set_header Connection "";
+        proxy_pass $api_upstream;
+    }
+
+    location /api/ {
+        limit_req zone=api_limit burst=60 nodelay;
+        proxy_set_header Connection "";
+        proxy_pass $api_upstream;
+    }
+
+    location ~ ^/(swagger-ui|v3/api-docs)/ {
+        proxy_set_header Connection "";
+        proxy_pass $api_upstream;
+    }
+
+    location /ws {
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 1h;
+        proxy_send_timeout 1h;
+        proxy_pass $api_upstream;
+    }
+
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        include /etc/nginx/snippets/security-headers.conf;
+        try_files $uri =404;
+    }
+
+    location / {
+        add_header Cache-Control "no-cache";
+        include /etc/nginx/snippets/security-headers.conf;
+        try_files $uri $uri/ /index.html;
+    }
+}
