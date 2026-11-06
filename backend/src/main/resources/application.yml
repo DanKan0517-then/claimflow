@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: claimflow-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/claimflow}
+    username: ${DATABASE_USER:claimflow}
+    password: ${DATABASE_PASSWORD:claimflow}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60s
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 25MB
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: claimflow-api
+      instance: ${INSTANCE_ID:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+
+springdoc:
+  swagger-ui:
+    path: /api/docs
+  api-docs:
+    path: /api/docs/openapi.json
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [${INSTANCE_ID:local}] [%X{requestId:-}] %logger{36} - %msg%n"
+
+app:
+  instance-id: ${INSTANCE_ID:local}
+  jwt:
+    secret: ${JWT_SECRET:change-me-change-me-change-me-change-me-change-me-0123456789}
+    ttl-minutes: ${JWT_TTL_MINUTES:720}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost}
+  storage:
+    upload-dir: ${UPLOAD_DIR:./data/uploads}
+  workflow:
+    # Claims above this amount (INR) need manager approval after adjuster recommends approval
+    manager-approval-threshold: ${MANAGER_APPROVAL_THRESHOLD:50000}
+    high-risk-fraud-score: ${HIGH_RISK_FRAUD_SCORE:70}
+  ai:
+    provider: ${AI_PROVIDER:auto}          # auto | groq | rules
+    groq-api-key: ${GROQ_API_KEY:}
+    groq-model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+    groq-base-url: ${GROQ_BASE_URL:https://api.groq.com/openai/v1}
+    worker-enabled: ${AI_WORKER_ENABLED:true}
+  seed-demo: ${SEED_DEMO:false}

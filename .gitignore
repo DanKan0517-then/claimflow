@@ -1,0 +1,18 @@
+# Java
+backend/target/
+backend/data/
+*.class
+# Node
+node_modules/
+frontend/dist/
+# Env / secrets
+.env
+.env.*
+!.env.example
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+# Load test output
+loadtest/results/
