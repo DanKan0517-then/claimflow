@@ -4,6 +4,11 @@ AI-assisted insurance claims processing. A customer files a claim and uploads bi
 
 [![CI](https://github.com/DanKan0517-then/claimflow/actions/workflows/ci.yml/badge.svg)](https://github.com/DanKan0517-then/claimflow/actions/workflows/ci.yml)
 
+## 🔗 Live demo: **https://claimflow-v9sw.onrender.com**
+
+Log in with any demo account below (password `Demo@1234`), or register as a new customer.
+Hosted on Render's free tier, so if nobody has used it for 15 minutes the first load can take about a minute while the server wakes up.
+
 **Stack:** Java 21 · Spring Boot 3 · React 19 + TypeScript · PostgreSQL 16 · Redis 7 · nginx · Docker Compose · Prometheus + Grafana · GitHub Actions · Groq LLM (optional)
 
 ```
@@ -113,7 +118,9 @@ Latest CI load test (GitHub runner, 2 API replicas behind nginx, 30 virtual user
 
 ## Deploy
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). In short, use a free Oracle Cloud VM, a domain, and `deploy/deploy.sh your.domain you@email`, which gets a Let's Encrypt certificate and starts everything behind nginx on 443.
+**Live demo (Render, free tier):** <https://claimflow-v9sw.onrender.com>. Defined in [`render.yaml`](render.yaml): nginx + React, the Spring Boot API, Postgres and Key Value (Redis), all in Singapore. It redeploys on every push to `main`. The free tier runs one API instance and the disk is temporary, so uploaded files are cleared on restart.
+
+**Full production setup (your own VM):** see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). In short, use a free Oracle Cloud VM, a domain, and `deploy/deploy.sh your.domain you@email`, which gets a Let's Encrypt certificate and starts everything behind nginx on 443.
 
 ## Docs
 

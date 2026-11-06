@@ -52,7 +52,7 @@ services:
       - key: DB_POOL_SIZE
         value: "5"
       - key: CORS_ORIGINS
-        value: https://claimflow.onrender.com
+        value: https://claimflow-v9sw.onrender.com
       # 512 MB free instance: small heap, serial GC, faster JIT warm-up
       - key: JAVA_OPTS
         value: -XX:MaxRAMPercentage=60 -XX:+UseSerialGC -Xss512k -XX:MaxMetaspaceSize=160m -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError
@@ -67,6 +67,6 @@ services:
     healthCheckPath: /nginx-health
     envVars:
       - key: API_HOST
-        value: claimflow-api.onrender.com
+        value: claimflow-api-ic4a.onrender.com
       - key: API_RATE_LIMIT
         value: "30"
