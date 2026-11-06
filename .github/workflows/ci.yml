@@ -23,7 +23,11 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - name: Pin Docker API version for Testcontainers
+        run: echo "api.version=1.44" > ~/.docker-java.properties
       - name: Build, unit + integration tests (Testcontainers)
+        env:
+          DOCKER_API_VERSION: "1.44"
         run: mvn -B -ntp verify
       - name: Test report
         if: always()

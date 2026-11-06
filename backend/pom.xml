@@ -22,6 +22,8 @@
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
         <pdfbox.version>3.0.3</pdfbox.version>
+        <!-- newer Docker engines reject the old API version used by the Boot 3.3 default -->
+        <testcontainers.version>1.21.3</testcontainers.version>
     </properties>
 
     <dependencies>
