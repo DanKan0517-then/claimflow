@@ -59,7 +59,7 @@ export default function ClaimDetailPage() {
             {staff && c.customerName && <> · {c.customerName}</>}
           </p>
         </div>
-        <div className="text-right">
+        <div className="sm:text-right">
           <div className="text-xs uppercase tracking-wide text-slate-500">Claimed</div>
           <div className="tabular text-2xl font-semibold">{inr(c.claimedAmount)}</div>
           {c.approvedAmount !== null && (

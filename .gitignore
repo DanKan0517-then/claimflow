@@ -19,3 +19,5 @@ loadtest/results/
 
 # Production TLS certificates
 deploy/certbot/
+deploy/backups/
+deploy/backup.log

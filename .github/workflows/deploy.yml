@@ -1,0 +1,35 @@
+name: Deploy
+
+# Deploys main to the production VM after CI passes. Only runs if the deploy secrets are configured.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: echo "enabled=$([ -n "$HOST" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Deploy over SSH
+        if: steps.check.outputs.enabled == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            cd ~/claimflow
+            git fetch origin main && git reset --hard origin/main
+            ./deploy/deploy.sh "${{ secrets.DEPLOY_DOMAIN }}" "${{ secrets.DEPLOY_EMAIL }}"
+      - name: Skipped
+        if: steps.check.outputs.enabled != 'true'
+        run: echo "No DEPLOY_HOST secret set - skipping deploy."
