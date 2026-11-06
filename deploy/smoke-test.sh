@@ -10,7 +10,7 @@ jget() { python3 -c "import sys,json; d=json.load(sys.stdin); print(eval('d'+sys
 
 echo "Smoke testing $BASE"
 
-for i in $(seq 1 60); do curl -fs "$BASE/nginx-health" >/dev/null && break; sleep 2; done
+for i in $(seq 1 60); do curl -fs --max-time 100 "$BASE/nginx-health" >/dev/null && break; sleep 2; done
 curl -fs "$BASE/nginx-health" >/dev/null || fail "nginx not healthy"
 ok "nginx healthy"
 
@@ -66,7 +66,8 @@ st=$(auth "$ADJ" -X POST "$BASE/api/claims/$CLAIM/actions" -H 'Content-Type: app
 [ "$st" = "APPROVED" ] || fail "approve gave $st"
 ok "adjuster approved it"
 
-# load balancing: both replicas should answer
+# load balancing: both replicas should answer (skip with EXPECT_REPLICAS=1, e.g. the Render free tier)
+if [ "${EXPECT_REPLICAS:-2}" -ge 2 ]; then
 seen=""
 for i in $(seq 1 12); do
   s=$(curl -fs -D - -o /dev/null -H "Authorization: Bearer $ADMIN" "$BASE/api/analytics/instance" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-served-by"{print $2}')
@@ -75,6 +76,7 @@ done
 echo "$seen" | grep -q api-1 || fail "api-1 never served a request"
 echo "$seen" | grep -q api-2 || fail "api-2 never served a request"
 ok "nginx balanced requests across api-1 and api-2"
+fi
 
 # rate limiting on login
 limited=0
