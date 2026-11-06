@@ -2,7 +2,7 @@ spring:
   application:
     name: claimflow-api
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/claimflow}
+    url: ${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:claimflow}}
     username: ${DATABASE_USER:claimflow}
     password: ${DATABASE_PASSWORD:claimflow}
     hikari:
