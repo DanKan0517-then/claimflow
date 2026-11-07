@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
+import WakeBanner from './components/WakeBanner'
 import { PageLoader } from './components/ui'
 import { isStaff, useAuth } from './lib/auth'
 import type { Role } from './lib/types'
@@ -56,8 +57,11 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <AppRoutes />
-    </Suspense>
+    <>
+      <WakeBanner />
+      <Suspense fallback={<PageLoader />}>
+        <AppRoutes />
+      </Suspense>
+    </>
   )
 }

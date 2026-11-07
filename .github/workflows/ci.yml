@@ -75,6 +75,11 @@ jobs:
         run: docker run --rm -i --network host grafana/k6:0.54.0 run -e BASE=http://localhost - < loadtest/claims-load.js
       - name: End-to-end smoke test
         run: deploy/smoke-test.sh http://localhost
+      - name: Render demo image builds and its nginx config is valid
+        run: |
+          docker build -f Dockerfile.render -t claimflow-render .
+          docker run --rm --entrypoint sh claimflow-render -c \
+            "envsubst '\${PORT} \${API_RATE_LIMIT}' < /etc/nginx/claimflow.conf.template > /etc/nginx/http.d/default.conf && nginx -t"
       - name: Logs on failure
         if: failure()
         run: docker compose logs --tail=200

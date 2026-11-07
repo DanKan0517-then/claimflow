@@ -1,6 +1,8 @@
-# Render Blueprint: the public demo deployment (free tier, Singapore).
-#   browser -> claimflow (nginx + React) -> claimflow-api (Spring Boot) -> Postgres + Key Value (Redis)
-# Free web services can't receive private-network traffic, so nginx proxies to the API's public HTTPS URL.
+# Render Blueprint: the public demo (free tier, Singapore).
+#   browser -> claimflow [ nginx -> Spring Boot API (same container) ] -> Postgres + Key Value (Redis)
+# nginx and the API share one container on purpose: free services sleep when idle, and a single
+# service wakes up as one unit on the first request (two services would each need waking).
+# Production (docker-compose.yml) runs them as separate containers with two API replicas.
 
 databases:
   - name: claimflow-db
@@ -19,13 +21,13 @@ services:
     ipAllowList: []   # internal connections only
 
   - type: web
-    name: claimflow-api
+    name: claimflow
     runtime: docker
     plan: free
     region: singapore
-    dockerContext: ./backend
-    dockerfilePath: ./backend/Dockerfile
-    healthCheckPath: /actuator/health/readiness
+    dockerContext: .
+    dockerfilePath: ./Dockerfile.render
+    healthCheckPath: /healthz
     envVars:
       - key: DB_HOST
         fromDatabase: { name: claimflow-db, property: host }
@@ -43,30 +45,13 @@ services:
         fromService: { type: keyvalue, name: claimflow-redis, property: port }
       - key: JWT_SECRET
         generateValue: true
-      - key: SERVER_PORT
-        value: "10000"
       - key: INSTANCE_ID
-        value: render-api
+        value: render
       - key: SEED_DEMO
         value: "true"
       - key: DB_POOL_SIZE
         value: "5"
       - key: CORS_ORIGINS
         value: https://claimflow-v9sw.onrender.com
-      # 512 MB free instance: small heap, serial GC, faster JIT warm-up
-      - key: JAVA_OPTS
-        value: -XX:MaxRAMPercentage=60 -XX:+UseSerialGC -Xss512k -XX:MaxMetaspaceSize=160m -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError
-
-  - type: web
-    name: claimflow
-    runtime: docker
-    plan: free
-    region: singapore
-    dockerContext: .
-    dockerfilePath: ./nginx/Dockerfile.render
-    healthCheckPath: /nginx-health
-    envVars:
-      - key: API_HOST
-        value: claimflow-api-ic4a.onrender.com
       - key: API_RATE_LIMIT
         value: "30"

@@ -1,0 +1,30 @@
+# Render demo image: React build + Spring Boot API + nginx gateway in one container.
+# (Production uses docker-compose with separate containers and two API replicas.)
+
+FROM node:22-alpine AS web
+WORKDIR /web
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
+FROM maven:3.9-eclipse-temurin-21 AS api
+WORKDIR /src
+COPY backend/pom.xml .
+RUN mvn -B -q dependency:go-offline
+COPY backend/src ./src
+RUN mvn -B -q package -DskipTests
+
+FROM eclipse-temurin:21-jre-alpine
+RUN apk add --no-cache nginx gettext \
+ && rm -f /etc/nginx/http.d/default.conf \
+ && mkdir -p /run/nginx /data/uploads
+COPY nginx/snippets/ /etc/nginx/snippets/
+COPY nginx/render/single.conf.template /etc/nginx/claimflow.conf.template
+COPY --from=web /web/dist /usr/share/nginx/html
+COPY --from=api /src/target/claimflow-api.jar /app/app.jar
+COPY deploy/render-entrypoint.sh /entrypoint.sh
+ENV PORT=10000 API_RATE_LIMIT=30 UPLOAD_DIR=/data/uploads \
+    JAVA_OPTS="-XX:MaxRAMPercentage=55 -XX:+UseSerialGC -Xss512k -XX:MaxMetaspaceSize=160m -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"
+EXPOSE 10000
+ENTRYPOINT ["/entrypoint.sh"]
